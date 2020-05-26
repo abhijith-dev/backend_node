@@ -76,6 +76,10 @@ var Distributer=mongo.model('Distributer',DistributerScheme);
 var Retailer=mongo.model('Retailer',RetailerScheme);
 
 app.get('/addcompany/:c_name/:c_id/:c_email/:c_phno/:c_location/:c_address',(req,res)=>{
+   var d_id=Math.floor(Math.random()*10000).toString();
+   var r_id=Math.floor(Math.random()*10000).toString();
+   var D_id=req.params.c_name+"_dis_"+d_id;
+   var R_id=req.params.c_name+"_ret_"+r_id;
    var company_added=Company({
     c_name:req.params.c_name,
     c_id:req.params.c_id,
@@ -85,13 +89,16 @@ app.get('/addcompany/:c_name/:c_id/:c_email/:c_phno/:c_location/:c_address',(req
     },
     c_location:req.params.c_location,
     address:req.params.c_address,
-    dis_id:"dis123456",
-    ret_id:"ret123456",
+    dis_id:D_id,
+    ret_id:R_id,
     data:Date.now()
   });
   company_added.save((err)=>{
     if(!err){
-      res.send("company added successfully")
+      res.send({
+        d_id:D_id,
+        r_id:R_id
+      })
     }
     else{
       res.send("something went wrong......")
@@ -205,7 +212,7 @@ app.get('/ret_very/:ret_id',(req,res)=>{
 app.get('/dis_verified/:p_id',(req,res)=>{
   var options = { multi: true };
   Product.update({
-    p_id:p_id
+    p_id:req.params.p_id
   },{
     d_status:true
   },options,(err,no)=>{
@@ -227,51 +234,48 @@ app.get('/ret_verified/:p_id',(req,res)=>{
 
 //user when scan the barcode to get product details
 app.get('/user_portal/:p_id',(req,res)=>{
-  try{
-    var details=[]
-  var p_id=req.params.p_id;
+  var details=[]
   Product.find({
-   p_id:p_id 
+    p_id:req.params.p_id
   },(err,data)=>{
-    if(err){
-      return res.send("error")
-    }
-    let c_id=data[0].c_id;
     Company.find({
-      c_id:c_id
-    },(err,data)=>{
-      if(err){
-        return res.send("error")
-      }
-      details.push(data)
-      let c_id=data[0].c_id;
+      c_id:data[0].c_id
+    },(err,c_data)=>{
+      details.push({
+        "c_name":c_data[0].c_name,
+        "c_email":c_data[0].contacts.email,
+        "c_phno":c_data[0].contacts.phno,
+        "c_location":c_data[0].c_location,
+        "c_address":c_data[0].address,
+        "c_date":c_data[0].data
+      })
       Distributer.find({
-        c_id:c_id,
-        d_status:true
-      },(err,data)=>{
-        if(err){
-          return res.send("error")
-        }
-        details.push(data)
-        let c_id=data[0].c_id;
-        Retailer.find({
-          c_id:c_id,
-          r_status:true
-        },(err,data)=>{ 
-          if(err){
-            return res.send("error")
-          }
-          details.push(data)
-          res.send(details[0]+"  "+details[1]+"  "+details[2])
-        }) 
+        c_id:c_data[0].c_id
+    },(err,d_data)=>{
+      details.push({
+        "d_name":d_data[0].d_name,
+        "d_email":d_data[0].contacts.email,
+        "d_phno":d_data[0].contacts.phno,
+        "d_location":d_data[0].d_location,
+        "d_address":d_data[0].address,
+        "d_date":d_data[0].data
+      })
+      Retailer.find({
+        c_id:d_data[0].c_id
+      },(err,r_data)=>{
+        details.push({
+          "r_name":r_data[0].r_name,
+          "r_email":r_data[0].contacts.email,
+          "r_phno":r_data[0].contacts.phno,
+          "r_location":r_data[0].r_location,
+          "r_address":r_data[0].address,
+          "r_date":r_data[0].data  
+        })
+        res.send(details)
       })
     })
-
-  })
-  }
-  catch{
-    res.send("error..")
-  }
+    })
+   })
 })
 app.listen(3000,(err)=>{
     if(!err){
