@@ -227,32 +227,51 @@ app.get('/ret_verified/:p_id',(req,res)=>{
 
 //user when scan the barcode to get product details
 app.get('/user_portal/:p_id',(req,res)=>{
-  var details=[]
+  try{
+    var details=[]
   var p_id=req.params.p_id;
   Product.find({
    p_id:p_id 
   },(err,data)=>{
+    if(err){
+      return res.send("error")
+    }
     let c_id=data[0].c_id;
     Company.find({
       c_id:c_id
     },(err,data)=>{
+      if(err){
+        return res.send("error")
+      }
       details.push(data)
       let c_id=data[0].c_id;
       Distributer.find({
-        c_id:c_id
+        c_id:c_id,
+        d_status:true
       },(err,data)=>{
+        if(err){
+          return res.send("error")
+        }
         details.push(data)
         let c_id=data[0].c_id;
         Retailer.find({
-          c_id:c_id
-        },(err,data)=>{
+          c_id:c_id,
+          r_status:true
+        },(err,data)=>{ 
+          if(err){
+            return res.send("error")
+          }
           details.push(data)
-          res.send(details)
+          res.send(details[0]+"  "+details[1]+"  "+details[2])
         }) 
       })
     })
 
   })
+  }
+  catch{
+    res.send("error..")
+  }
 })
 app.listen(3000,(err)=>{
     if(!err){
